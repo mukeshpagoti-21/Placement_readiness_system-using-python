@@ -1,0 +1,17 @@
+============================================================
+                   STUDENT REPORT: STU101                   
+============================================================
+Name            : Aditi Sharma
+Batch           : B01
+Email / Phone   : aditi@example.com | 9876543210
+Attendance      : 46/50 (92.0%)
+Scores          : {'python': 91.4, 'sql': 92.0, 'excel': 88.0, 'powerbi': 91.0}
+Project         : Sales Forecasting Dashboard [Approved] (94.0%)
+Practice        : 25 sessions, 110 problems
+Mock Interview  : Cleared (Tech: 90.0, Comm: 88.0)
+Skills          : CAPSTONE, EXCEL, INTERVIEW_READY, POWERBI, PROBLEM_SOLVING, PYTHON, SQL
+------------------------------------------------------------
+Overall Progress: 92.36%
+Category        : Platinum
+Placement Ready : YES
+============================================================

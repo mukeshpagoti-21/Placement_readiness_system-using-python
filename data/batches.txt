@@ -1,0 +1,2 @@
+B01|Data Analytics Cohort|Data Analytics|Meera Nair
+B02|Python Full Stack|Full Stack|Arjun Kulkarni

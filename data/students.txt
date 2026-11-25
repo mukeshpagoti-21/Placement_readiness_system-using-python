@@ -1,0 +1,3 @@
+STU101|Aditi Sharma|aditi@example.com|9876543210|B01|46/50|90.0,95.0,88.0|python:91.4,sql:92.0,excel:88.0,powerbi:91.0|Sales Forecasting Dashboard~Approved~94.0|25,110|Cleared~90.0~88.0|CAPSTONE,EXCEL,INTERVIEW_READY,POWERBI,PROBLEM_SOLVING,PYTHON,SQL
+STU102|Rohan Verma|rohan@example.com|9876543211|B01|42/50|80.0,82.0,78.0|python:80.2,sql:84.0,excel:79.0,powerbi:81.0|Customer Churn Analysis~Approved~82.0|18,70|Cleared~78.0~76.0|CAPSTONE,EXCEL,INTERVIEW_READY,POWERBI,PROBLEM_SOLVING,PYTHON,SQL
+STU103|Deepak Joshi|deepak@example.com|9876543212|B02|32/50|52.0,48.0,55.0|python:51.3,sql:45.0,excel:58.0,powerbi:50.0|Inventory Tracker~In Progress~40.0|6,22|Failed~42.0~50.0|
