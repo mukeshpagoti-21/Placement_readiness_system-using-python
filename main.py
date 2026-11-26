@@ -1,9 +1,15 @@
-"""Main entry point: Interactive CLI menu and automated --demo mode."""
+"""Main entry point: Interactive CLI menu and isolated --demo mode."""
 
+import os
+import shutil
 import sys
+from typing import Optional
 
-from exceptions import PlacementError
+from exceptions import FileStorageError, PlacementError
 from manager import PlacementManager
+from reports import APP_DIR
+
+DEFAULT_DEMO_DIR = os.path.join(APP_DIR, "demo_data")
 
 
 def seed_sample_data(manager: PlacementManager) -> None:
@@ -42,14 +48,19 @@ def seed_sample_data(manager: PlacementManager) -> None:
     manager.record_mock_interview("STU103", "Failed", tech=42, comm=50)
 
 
-def run_demo() -> None:
-    """Run a concise demonstration of all 15 features."""
-    manager = PlacementManager()
+def run_demo(demo_dir: Optional[str] = None) -> None:
+    """Run a concise demonstration in an isolated demo folder without touching live data."""
+    target_dir = os.path.abspath(demo_dir) if demo_dir is not None else DEFAULT_DEMO_DIR
+    if os.path.exists(target_dir):
+        shutil.rmtree(target_dir)
+
+    manager = PlacementManager(data_dir=target_dir)
     seed_sample_data(manager)
 
     print("\n=== PLACEMENT READINESS SYSTEM DEMO ===")
-    print(f"Batches : {list(manager.batches.keys())}")
-    print(f"Students: {len(manager.students)}")
+    print(f"Demo Folder: {target_dir}")
+    print(f"Batches    : {list(manager.batches.keys())}")
+    print(f"Students   : {len(manager.students)}")
 
     print("\n-- Top Performers --")
     for rank, (student, score, category) in enumerate(manager.get_top_performers(3), start=1):
@@ -72,13 +83,23 @@ def run_demo() -> None:
     manager.save_data()
     p1 = manager.export_student_report("STU101")
     p2 = manager.export_summary_report()
-    print(f"\nSaved TXT data & reports:\n  - {p1}\n  - {p2}")
+    print(f"\nSaved demo TXT data & reports:\n  - {p1}\n  - {p2}")
 
 
 def run_cli() -> None:
-    """Interactive menu loop."""
+    """Interactive menu loop with controlled storage recovery."""
     manager = PlacementManager()
-    manager.load_data()
+    try:
+        manager.load_data()
+    except FileStorageError as exc:
+        print(f"\n[RECOVERY NOTICE] Could not load saved records: {exc}")
+        print(f"Original files in '{manager.storage.base_dir}' have been preserved untouched.")
+        reply = input("Start with an empty in-memory session instead? (y/N): ").strip().lower()
+        if reply != "y":
+            print("Exiting without modifying saved files.")
+            return
+        manager = PlacementManager()
+
     if not manager.batches and not manager.students:
         seed_sample_data(manager)
 

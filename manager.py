@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Optional, Tuple
 
-from exceptions import DuplicateError, NotFoundError
+from exceptions import DuplicateError, NotFoundError, ValidationError
 from models import WEIGHTS, Batch, Student
 from reports import StudentReport, SummaryReport, TxtStorage
 
@@ -10,7 +10,7 @@ from reports import StudentReport, SummaryReport, TxtStorage
 class PlacementManager:
     """Manages batches, student progress, placement readiness, and TXT storage."""
 
-    def __init__(self, data_dir: str = "data"):
+    def __init__(self, data_dir: Optional[str] = None):
         self.batches: Dict[str, Batch] = {}
         self.students: Dict[str, Student] = {}
         self.storage = TxtStorage(data_dir)
@@ -28,10 +28,16 @@ class PlacementManager:
         key = batch_id.strip().upper()
         if key not in self.batches:
             raise NotFoundError(f"Batch '{key}' not found.")
-        return [self.students[sid] for sid in sorted(self.batches[key].student_ids) if sid in self.students]
+        return [
+            self.students[sid]
+            for sid in sorted(self.batches[key].student_ids)
+            if sid in self.students
+        ]
 
     # 2. Student Registration
-    def register_student(self, student_id: str, name: str, email: str, phone: str, batch_id: str) -> Student:
+    def register_student(
+        self, student_id: str, name: str, email: str, phone: str, batch_id: str
+    ) -> Student:
         sid = student_id.strip().upper()
         bid = batch_id.strip().upper()
         if sid in self.students:
@@ -57,30 +63,40 @@ class PlacementManager:
         return student.attendance_pct
 
     # 4. Python Assessment Scores
-    def record_python_score(self, student_id: str, theory: float, coding: float, mcq: float) -> float:
+    def record_python_score(
+        self, student_id: str, theory: float, coding: float, mcq: float
+    ) -> float:
         student = self.get_student(student_id)
         return student.update_python_score(theory, coding, mcq)
 
     # 5. Manual SQL / Excel / Power BI Score Entry (*args & **kwargs)
-    def record_subject_scores(self, student_id: str, *args: float, **kwargs: float) -> Dict[str, float]:
+    def record_subject_scores(
+        self, student_id: str, *args: float, **kwargs: float
+    ) -> Dict[str, float]:
         student = self.get_student(student_id)
         student.update_scores(*args, **kwargs)
         return student.scores
 
     # 6. Project Completion Status
-    def record_project(self, student_id: str, title: str, status: str, score: float = 0.0) -> dict:
+    def record_project(
+        self, student_id: str, title: str, status: str, score: float = 0.0
+    ) -> dict:
         student = self.get_student(student_id)
         student.update_project(title, status, score)
         return student.project
 
     # 7. Practice Session Tracking
-    def record_practice(self, student_id: str, sessions: int, problems_solved: int) -> dict:
+    def record_practice(
+        self, student_id: str, sessions: int, problems_solved: int
+    ) -> dict:
         student = self.get_student(student_id)
         student.update_practice(sessions, problems_solved)
         return student.practice
 
     # 8. Mock Interview Status
-    def record_mock_interview(self, student_id: str, status: str, tech: float = 0.0, comm: float = 0.0) -> dict:
+    def record_mock_interview(
+        self, student_id: str, status: str, tech: float = 0.0, comm: float = 0.0
+    ) -> dict:
         student = self.get_student(student_id)
         student.update_mock_interview(status, tech, comm)
         return student.mock_interview
@@ -93,15 +109,16 @@ class PlacementManager:
 
         proj = student.project
         if proj["status"] == "Approved":
-            proj_score = proj["score"] if proj["score"] > 0 else 100.0
+            # Use the actual graded score (0 remains 0, never treated as missing data)
+            proj_score = proj["score"]
         elif proj["status"] == "Submitted":
-            proj_score = max(70.0, proj["score"])
+            proj_score = min(85.0, proj["score"])
         elif proj["status"] == "In Progress":
             proj_score = 40.0
         else:
             proj_score = 0.0
 
-        practice_score = min(100.0, student.practice["problems_solved"])  # target = 100 problems
+        practice_score = min(100.0, float(student.practice["problems_solved"]))  # target = 100
 
         mock = student.mock_interview
         if mock["status"] == "Cleared":
@@ -126,7 +143,11 @@ class PlacementManager:
     # 10. Performance Category
     def get_performance_category(self, student: Student) -> str:
         progress = self.calculate_overall_progress(student)
-        if progress >= 85 and student.attendance_pct >= 80 and student.project["status"] == "Approved":
+        if (
+            progress >= 85
+            and student.attendance_pct >= 80
+            and student.project["status"] == "Approved"
+        ):
             return "Platinum"
         if progress >= 75:
             return "Gold"
@@ -144,11 +165,17 @@ class PlacementManager:
         if avg_score < 70:
             reasons.append(f"Technical average {avg_score:.1f}% < 70%")
         if student.project["status"] != "Approved":
-            reasons.append(f"Project status is '{student.project['status']}' (needs 'Approved')")
+            reasons.append(
+                f"Project status is '{student.project['status']}' (needs 'Approved')"
+            )
         if student.mock_interview["status"] != "Cleared":
-            reasons.append(f"Mock interview is '{student.mock_interview['status']}' (needs 'Cleared')")
+            reasons.append(
+                f"Mock interview is '{student.mock_interview['status']}' (needs 'Cleared')"
+            )
         if student.practice["problems_solved"] < 50:
-            reasons.append(f"Practice problems {student.practice['problems_solved']} < 50")
+            reasons.append(
+                f"Practice problems {student.practice['problems_solved']} < 50"
+            )
 
         return (len(reasons) == 0, reasons)
 
@@ -161,14 +188,33 @@ class PlacementManager:
         if mode == "batch":
             return [s for s in self.students.values() if q in s.batch_id.lower()]
         if mode == "category":
-            return [s for s in self.students.values() if q in self.get_performance_category(s).lower()]
+            return [
+                s
+                for s in self.students.values()
+                if q in self.get_performance_category(s).lower()
+            ]
         return [s for s in self.students.values() if q in s.name.lower()]
 
     # 13. Top Performer Identification
-    def get_top_performers(self, n: int = 3, batch_id: Optional[str] = None) -> List[Tuple[Student, float, str]]:
-        pool = self.get_batch_students(batch_id) if batch_id else list(self.students.values())
+    def get_top_performers(
+        self, n: int = 3, batch_id: Optional[str] = None
+    ) -> List[Tuple[Student, float, str]]:
+        if n < 0:
+            raise ValidationError("Count 'n' cannot be negative.")
+        pool = (
+            self.get_batch_students(batch_id)
+            if batch_id
+            else list(self.students.values())
+        )
         ranked = sorted(
-            [(s, self.calculate_overall_progress(s), self.get_performance_category(s)) for s in pool],
+            [
+                (
+                    s,
+                    self.calculate_overall_progress(s),
+                    self.get_performance_category(s),
+                )
+                for s in pool
+            ],
             key=lambda item: item[1],
             reverse=True,
         )
@@ -184,7 +230,7 @@ class PlacementManager:
                 flagged.append((student, progress, reasons))
         return sorted(flagged, key=lambda item: item[1])
 
-    # Set Operations Helper (Union, Intersection, Difference)
+    # Set Operations Helper (Union, Intersection)
     def analyze_batch_skills(self, batch_id: str) -> Dict[str, set]:
         students = self.get_batch_students(batch_id)
         if not students:
@@ -210,7 +256,11 @@ class PlacementManager:
         return self.storage.save_report(f"student_{student.student_id}.txt", report)
 
     def export_summary_report(self, batch_id: Optional[str] = None) -> str:
-        pool = self.get_batch_students(batch_id) if batch_id else list(self.students.values())
+        pool = (
+            self.get_batch_students(batch_id)
+            if batch_id
+            else list(self.students.values())
+        )
         rows = [
             (
                 s,
@@ -220,6 +270,12 @@ class PlacementManager:
             )
             for s in sorted(pool, key=lambda x: x.student_id)
         ]
-        title = f"BATCH SUMMARY: {batch_id.upper()}" if batch_id else "PLACEMENT READINESS SUMMARY"
-        filename = f"batch_{batch_id.upper()}.txt" if batch_id else "placement_summary.txt"
+        title = (
+            f"BATCH SUMMARY: {batch_id.upper()}"
+            if batch_id
+            else "PLACEMENT READINESS SUMMARY"
+        )
+        filename = (
+            f"batch_{batch_id.upper()}.txt" if batch_id else "placement_summary.txt"
+        )
         return self.storage.save_report(filename, SummaryReport(title, rows))

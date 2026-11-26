@@ -2,7 +2,10 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.tmp
+*.bak
 .pytest_cache/
 .env
 .venv/
 venv/
+demo_data/
